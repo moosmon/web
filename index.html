@@ -1,0 +1,152 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="X-UA-Compatible" content="IE=edge">
+    <title>Proyecto</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Source+Code+Pro:wght@200;900&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <header>
+        <div class="navbar">
+            <div class="navbar-left">
+                <a href="#" onclick="loadPosts()">Inicio</a>
+            </div>
+            <div class="navbar-right">
+                <span class="menu-icon" onclick="openNav()">&#9776; Usuarios</span>
+            </div>
+        </div>
+    </header>
+
+    <div id="mySidenav" class="sidenav">
+        <a href="javascript:void(0)" class="closebtn" onclick="closeNav()">&times;</a>
+        <a href="#" onclick="loadPostsByUser('Dylan')">Dylan</a>
+        <a href="#" onclick="loadPostsByUser('Monica')">Monica</a>
+        <a href="#" onclick="loadPostsByUser('Ramses')">Ramses</a>
+        <a href="#" onclick="loadPostsByUser('Oslin')">Oslin</a>
+        <a href="#" onclick="loadPostsByUser('Obed')">Obed</a>
+        <a href="#" onclick="loadPostsByUser('Eduardo')">Eduardo</a>
+        <a href="#" onclick="loadPostsByUser('Mario')">Mario</a>
+    </div>
+
+    <div class="container">
+        <h1>Cuéntanos algo interesante</h1>
+        <div class="user-info">
+            <input type="text" id="userName" placeholder="Nombre">
+        </div>
+        <div class="post-box">
+            <textarea id="postContent" placeholder="¿Qué es lo que te gustaría contar?"></textarea>
+            <button onclick="publishPost()">Publicar</button>
+        </div>
+        <div id="posts" class="posts">
+            <!-- Las publicaciones aparecerán aquí -->
+        </div>
+    </div>
+
+    <script>
+        function openNav() {
+            document.getElementById("mySidenav").style.width = "250px";
+        }
+
+        function closeNav() {
+            document.getElementById("mySidenav").style.width = "0";
+        }
+
+        async function loadPosts() {
+            try {
+                const response = await fetch('consultarPost.php');
+                const posts = await response.json();
+                renderPosts(posts);
+            } catch (error) {
+                console.error('Error al cargar las publicaciones:', error);
+            }
+        }
+
+        async function loadPostsByUser(username) {
+            try {
+                const response = await fetch('consultarPost.php');
+                const posts = await response.json();
+                const userPosts = posts.filter(post => post.usuario === username);
+                renderPosts(userPosts);
+            } catch (error) {
+                console.error('Error al cargar las publicaciones por usuario:', error);
+            }
+        }
+
+        function renderPosts(posts) {
+            const postsContainer = document.getElementById('posts');
+            postsContainer.innerHTML = ''; // Limpiar el contenido anterior
+            posts.forEach(post => addPostToDOM(post));
+        }
+
+        function addPostToDOM(post) {
+            const postElement = document.createElement('div');
+            postElement.className = 'post';
+            postElement.innerHTML = `
+                <h3>${post.usuario}</h3>
+                <p>${post.contenido}</p>
+                <small>${new Date(post.fecha).toLocaleString()}</small>
+                <button onclick="deletePost(${post.id})">Borrar</button>
+            `;
+            document.getElementById('posts').appendChild(postElement);
+        }
+
+        async function publishPost() {
+            const userName = document.getElementById('userName').value.trim();
+            const postContent = document.getElementById('postContent').value.trim();
+
+            if (userName === "" || postContent === "") {
+                alert("El nombre y el contenido no pueden estar vacíos.");
+                return;
+            }
+
+            const post = {
+                usuario: userName,
+                contenido: postContent
+            };
+
+            try {
+                const response = await fetch('insertar.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: new URLSearchParams(post)
+                });
+
+                const result = await response.text();
+                alert(result);
+                loadPosts();
+            } catch (error) {
+                console.error('Error al publicar la publicación:', error);
+            }
+        }
+
+        async function deletePost(id) {
+            const postData = new URLSearchParams({ id: id });
+
+            try {
+                const response = await fetch('borrar.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: postData
+                });
+
+                const result = await response.text();
+                alert(result);
+                loadPosts(); // Recarga las publicaciones después de la eliminación
+            } catch (error) {
+                console.error('Error al borrar la publicación:', error);
+            }
+        }
+
+        window.onload = loadPosts;
+    </script>
+</body>
+</html>
